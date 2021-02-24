@@ -1,0 +1,221 @@
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, ArgumentError
+import sys
+import os
+from os.path import join, split
+import traceback
+import time
+
+import pandas as pd
+import SimpleITK as sitk
+from scipy import stats
+import numpy as np
+
+
+label_names={}
+label_names[1]='Frontal_rh'
+label_names[2]='Parietal_rh'
+label_names[3]='Temporal_rh'
+label_names[4]='Occipital_rh'
+label_names[5]='Frontal_lh'
+label_names[6]='Parietal_lh'
+label_names[7]='Temporal_lh'
+label_names[8]='Occipital_lh'
+label_names[9]='Cerebellum_lh'
+label_names[10]='Sub-cortical_lh'
+label_names[11]='Brainstem_lh'
+label_names[12]='Cerebellum_rh'
+label_names[13]='Sub-cortical_rh'
+label_names[14]='Brainstem_rh'
+
+measures = ['mean', 'std', 'skew', 'kurtosis', 'min', 'max', 'nVox']
+
+
+
+def get_masked_stats(img_array, mask_array):
+    masked_img = img_array[np.where(mask_array)]
+    summary_stats = stats.describe(masked_img.ravel())
+    nobs, minmax, mean, var, skew, kurtosis = summary_stats
+    #mini, maxi = minmax
+    stats_dict = {'mean': mean, 'min': minmax[0], 'nVox': nobs,
+                  'max': minmax[1], 'skew': skew, 'kurtosis': kurtosis}
+    stats_dict['std'] = np.sqrt(var)
+    return stats_dict
+
+
+def get_mask_array(msk):
+    if type(msk) is str:
+        msk = sitk.ReadImage(msk)
+    msk_arr = sitk.GetArrayFromImage(msk)
+    assert(len(np.unique(msk_arr)) == 2)
+    assert(msk_arr.min() == 0)
+    assert(msk_arr.max() == 1)
+    return msk_arr
+
+
+def img_norm(img_arr):
+    img_arr_norm = img_arr - img_arr.min()
+    img_arr_norm = img_arr_norm / img_arr_norm.max()
+    assert(img_arr_norm.min() == 0)
+    assert(img_arr_norm.max() == 1)
+    return img_arr_norm
+
+
+def check_exist(T1, WM, LB, BM):
+    assert os.path.isfile(T1), 'T1 does not exist {}'.format(T1)
+    assert os.path.isfile(WM), 'WM does not exist {}'.format(WM)
+    assert os.path.isfile(LB), 'LB does not exist {}'.format(LB)
+    assert os.path.isfile(BM), 'T1 does not exist {}'.format(BM)
+
+
+def load_images(T1_path, WM_path, LB_path, BM_path):
+    T1 = sitk.ReadImage(T1_path)
+    WM = sitk.ReadImage(WM_path)
+    LB = sitk.ReadImage(LB_path)
+    BM = sitk.ReadImage(BM_path)
+    return T1, WM, LB, BM
+
+
+def get_stats(T1_arr, WM_arr, LB_arr, ctx_arr):
+    labels = list(label_names.keys())
+    lobes = label_names.values()
+    assert np.alltrue(np.sort([0]+labels) == np.sort(np.unique(LB_arr))), "labels {}, atlas lbls {}".format(labels, np.unique(LB_arr))
+    stats_df = pd.DataFrame(index=lobes, columns=measures)
+    for lbl in labels:
+        lobe = label_names[lbl]
+        print('\t label {}, lobe {}'.format(lbl, lobe))
+        LB_mask_i = LB_arr == lbl
+        WM_mask_i = WM_arr * LB_mask_i
+        assert_is_binary_mask(WM_mask_i)
+        assert(T1_arr.shape == WM_mask_i.shape)
+        stats_dict = get_masked_stats(T1_arr, WM_mask_i)
+        for m in measures:
+            print('\t \t {}: {}'.format(m, stats_dict[m]))
+            stats_df.loc[lobe, m] = stats_dict[m]
+    # Whole Brain Stats
+    print('\t Cortex')
+    WM_ctx = WM_arr * ctx_arr
+    stats_dict = get_masked_stats(T1_arr, WM_ctx)
+    for m in measures:
+        print('\t \t {}: {}'.format(m, stats_dict[m]))
+        stats_df.loc['Cortex', m] = stats_dict[m]
+    return stats_df
+
+
+def assert_is_binary_mask(msk_arr):
+    assert(len(np.unique(msk_arr)) == 2)
+    assert(msk_arr.min() == 0)
+    assert(msk_arr.max() == 1)
+
+
+def get_arrays(T1, WM, LB, BM):
+    T1_arr = sitk.GetArrayFromImage(T1)
+    WM_arr = sitk.GetArrayFromImage(WM)
+    LB_arr = sitk.GetArrayFromImage(LB)
+    BM_arr = sitk.GetArrayFromImage(BM)
+    assert_is_binary_mask(WM_arr)
+    assert_is_binary_mask(BM_arr)
+    return T1_arr, WM_arr, LB_arr, BM_arr
+    
+
+def check_img_consistent(T1, WM, LB, BM, v=0):
+    ref_img = T1
+    for img in [WM, LB, BM]:
+        img_compare(ref_img, img, v=v)
+
+
+def img_compare(img1, img2, v=1):
+    round_tpl = lambda tpl, n: tuple(round(x, n) for x in tpl)
+    size_1 = img1.GetSize()
+    size_2 = img2.GetSize()
+    spacing_1 = img1.GetSpacing()
+    spacing_2 = img2.GetSpacing()
+    origin_1 = img1.GetOrigin()
+    origin_2 = img2.GetOrigin()
+    direction_1 = img1.GetDirection()
+    direction_2 = img2.GetDirection()
+
+    if v:
+        print('size: \n img 1 {} \n img 2 {}'.format(round_tpl(size_1, 6),
+                                                     round_tpl(size_2, 6)))
+        print('spacing: \n img 1 {} \n img 2 {}'.format(round_tpl(spacing_1, 6),
+                                                        round_tpl(spacing_2, 6)))
+        print('origin: \n img 1 {} \n img 2 {}'.format(round_tpl(origin_1, 6),
+                                                       round_tpl(origin_2, 6)))
+        print('direction: \n img 1 {} \n img 2 {}'.format(round_tpl(direction_1, 6),
+                                                          round_tpl(direction_2, 6)))
+    assert np.allclose(size_1, size_2), 'Size missmatch {} not same as {}'.format(size_1, size_2) 
+    assert np.allclose(spacing_1, spacing_2), 'Spacing missmatch {} not same as {}'.format(spacing_1, spacing_2) 
+    assert np.allclose(origin_1, origin_2), 'Origin missmatch {} not same as {}'.format(origin_1, origin_2)
+    assert np.allclose(direction_1, direction_2), 'Direction missmatch {} not same as {}'.format(direction_1, direction_2) 
+
+
+def main(T1_path, WM_path, LB_path, BM_path, outdir, debug):
+    """
+
+    """
+    if not(os.path.isdir(outdir)):
+        os.makedirs(outdir)
+    check_exist(T1_path, WM_path, LB_path, BM_path)
+    T1, WM, LB, BM = load_images(T1_path, WM_path, LB_path, BM_path)
+    check_img_consistent(T1, WM, LB, BM)
+    T1_arr, WM_arr, LB_arr, BM_arr = get_arrays(T1, WM, LB, BM)
+
+    LB_arr2 = LB_arr * BM_arr
+    ctx_arr = np.copy(LB_arr2)
+    ctx_arr[ctx_arr>8] = 0 # suppress subcortical regions
+    ctx_arr = ctx_arr > 0 # binarize volume
+
+    stats_df = get_stats(T1_arr, WM_arr, LB_arr2, ctx_arr)
+    #stats_df.loc['Total'] = stats_df.sum()
+    stats_df.index.name = 'Lobe'
+    stats_df.to_csv(join(outdir, "WM_stats.csv"))
+    
+    #stats_dict, stats_dict_norm = get_T1_WM_stats(img_arr, msk_arr)
+    T1_arr_norm = img_norm(T1_arr)
+    norm_stats_df = get_stats(T1_arr_norm, WM_arr, LB_arr2, ctx_arr)
+    #norm_stats_df.loc['Total'] = norm_stats_df.sum()
+    norm_stats_df.index.name = 'Lobe'
+    norm_stats_df.to_csv(join(outdir, "WM_stats_norm.csv"))
+    
+    # save ctx arr
+    CTX = sitk.GetImageFromArray(ctx_arr.astype(np.uint8))
+    CTX.CopyInformation(T1)
+    sitk.WriteImage(CTX, join(outdir, 'cortex_mask.nii.gz'))
+    
+
+
+def get_parser():
+    module_parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
+    module_parser.add_argument("-i", dest="Img", type=str,
+                               help="Input image")
+    module_parser.add_argument("-WM", dest="WM", type=str,
+                               help="WM mask path")
+    module_parser.add_argument("-LM", dest="LB", type=str,
+                               help="Lobe mask path")
+    module_parser.add_argument("-BM", dest="BM", type=str,
+                               help="Brain mask path")
+    module_parser.add_argument("-o", dest="outdir", type=str,
+                               help="Output directory path")
+    module_parser.add_argument("-debug", dest="debug", type=int, default=0,
+                               help="DEBUG MODE [1 - ON, 0 - OFF (default: 0)]")
+    return module_parser
+
+
+if __name__ == "__main__":
+    t0 = time.time()
+    parser = get_parser()
+    try:
+        args = parser.parse_args()
+        main(args.Img,
+             args.WM,
+             args.LB,
+             args.BM,
+             args.outdir,
+             args.debug)
+    except ArgumentError as arg_exception:
+        traceback.print_exc()
+    except Exception as exception:
+        traceback.print_exc()
+    dt = (time.time() - t0) / 60
+    print('done... python script runtime: {} min'.format(dt))
+    sys.exit()
