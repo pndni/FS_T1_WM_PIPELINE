@@ -4,7 +4,6 @@ import os
 from os.path import join, split
 import traceback
 import time
-
 import pandas as pd
 import SimpleITK as sitk
 from scipy import stats
@@ -115,7 +114,7 @@ def get_arrays(T1, WM, LB, BM):
     assert_is_binary_mask(WM_arr)
     assert_is_binary_mask(BM_arr)
     return T1_arr, WM_arr, LB_arr, BM_arr
-    
+
 
 def check_img_consistent(T1, WM, LB, BM, v=0):
     ref_img = T1
@@ -150,9 +149,6 @@ def img_compare(img1, img2, v=1):
 
 
 def main(T1_path, WM_path, LB_path, BM_path, outdir, debug):
-    """
-
-    """
     if not(os.path.isdir(outdir)):
         os.makedirs(outdir)
     check_exist(T1_path, WM_path, LB_path, BM_path)

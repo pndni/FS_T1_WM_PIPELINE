@@ -8,15 +8,9 @@ set -e  # exit on error
 set -u  # exit on undefined variable
 version=1.0.0-alpha
 
-logcmd(){
-    #https://stackoverflow.com/questions/692000/how-do-i-write-stderr-to-a-file-while-using-tee-with-a-pipe
-    #thanks to lhunath
-    mkdir -p logs
-    local logbase
-    logbase=logs/$1
-    shift
-    echo "Running: " "$@" " > >(tee ${logbase}_stdout.txt) 2> >(tee ${logbase}_stderr.txt >&2)"
-    "$@" > >(tee ${logbase}_stdout.txt) 2> >(tee ${logbase}_stderr.txt >&2) || error "logcmd $1"
+error() {
+  >&2 echo $1
+  exit 1
 }
 
 # Check FSLOUTPUTTYPE and store appropriate extension in "ext"
@@ -46,6 +40,8 @@ fslversion=$(cat $FSLDIR/etc/fslversion)
 indir="${1}" # subject's recon all input
 outdir="${2}" # output for subject
 export FS_LICENSE="${3}"
+T1_N3=${4:-"freesurfer_default"}
+echo "T1 input ${T1_N3}"
 
 if [ -d $outdir ]; then
     rm -rf $outdir
@@ -71,9 +67,13 @@ out_ext=$ext
 
 echo "CONVERTING ${in_ext} to ${out_ext}"
 # T1 Used for calculating stats
-T1_N3_mgz="${indir}"/mri/nu$in_ext # orig_nu.mgz
-T1_N3="${outdir}"/mri/nu$out_ext
-mri_convert $T1_N3_mgz $T1_N3
+if [ $T1_N3 == "freesurfer_default" ]; then
+    T1_N3_mgz="${indir}"/mri/nu$in_ext # orig_nu.mgz
+    T1_N3="${outdir}"/mri/nu$out_ext
+    mri_convert $T1_N3_mgz $T1_N3
+elif [ ! -f $T1_N3 ]; then
+    error "T1 file does not exist: ${T1_N3}"
+fi
 # T1 Used for FLIRT
 T1_brain_mgz="${indir}"/mri/brain$in_ext # orig_nu.mgz
 T1_brain="${outdir}"/mri/brain$out_ext
@@ -104,7 +104,6 @@ s2raff="${reg_dir}"/"struct2mni_affine.mat"
 T1_atlas="${reg_dir}"/"T1_atlas_flirt${out_ext}"
 echo flirt -ref "${mni_ref_brain}" -in "${T1_brain}" -out "${T1_atlas}" -omat "${s2raff}"
 flirt -ref "${mni_ref_brain}" -in "${T1_brain}" -out "${T1_atlas}" -omat "${s2raff}"
-#logcmd flirtlog flirt -ref "$mnirefbrain" -in "$t1betcorc" -omat "$s2raff"
 
 # nonlinear registration
 #     of original image to reference image
