@@ -35,8 +35,6 @@ selfhash=$(sha256sum $0)
 fsversion=$(cat $FREESURFER_HOME/build-stamp.txt)
 fslversion=$(cat $FSLDIR/etc/fslversion)
 
-
-
 indir="${1}" # subject's recon all input
 outdir="${2}" # output for subject
 export FS_LICENSE="${3}"
@@ -88,7 +86,6 @@ T1_brain="${outdir}"/mri/brain$out_ext
 mri_convert $T1_brain_mgz $T1_brain
 
 
-
 # mri_binarize --i "${indir}"/mri/aparc+aseg.mgz --o "${outdir}"/mri/WM_mask_ctx.nii.gz  --ctx-wm
 WM="${outdir}/mri/WM_mask_all${out_ext}"
 mri_binarize --i "${indir}"/mri/aparc+aseg$in_ext --o $WM --all-wm
@@ -136,4 +133,4 @@ applywarp --ref="${T1_N3}" --in="${brainmask}" --out="${brainmask_native}" --war
 
 # Get Stats
 stats_dir="${outdir}/stats"
-python $PIPELINE_HOME/scripts/calc_stats.py -i $T1_N3 -WM $WM -LM $atlas_native -BM $brainmask_native -o $stats_dir
+python3.8 $PIPELINE_HOME/scripts/calc_stats.py -i $T1_N3 -WM $WM -LM $atlas_native -BM $brainmask_native -o $stats_dir
