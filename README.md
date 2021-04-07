@@ -6,7 +6,7 @@ Extracts image intensity statistics of white matter (WM) across different lobes 
 Originally tested with:
 - Ubuntu 20.04.2 LTS
 - FLIRT version 6.0.1
-- Freesurfer 6.0.1 / 7.1.1
+- Freesurfer 6.0.1
 - Python 3.6.13 (packages list in requirements.txt)
 
 ## Setup
