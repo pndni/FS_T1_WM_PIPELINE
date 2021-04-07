@@ -38,8 +38,8 @@ fslversion=$(cat $FSLDIR/etc/fslversion)
 indir="${1}" # subject's recon all input
 outdir="${2}" # output for subject
 export FS_LICENSE="${3}"
-T1_N3=${4:-"freesurfer_default"}
-echo "T1 input ${T1_N3}"
+IMG=${4:-"freesurfer_default"}
+echo "IMG input: ${IMG}"
 
 if [ -d $outdir ]; then
     rm -rf $outdir
@@ -65,25 +65,29 @@ out_ext=$ext
 
 echo "CONVERTING ${in_ext} to ${out_ext}"
 # T1 Used for calculating stats
-if [ $T1_N3 == "freesurfer_default" ]; then
+if [ $IMG == "freesurfer_default" ]; then
+    # Freesurfer IMG
     T1_N3_mgz="${indir}"/mri/nu$in_ext # orig_nu.mgz
-    T1_N3="${outdir}"/mri/nu$out_ext
-    mri_convert $T1_N3_mgz $T1_N3
-elif [ ! -f $T1_N3 ]; then
-    error "T1 file does not exist: ${T1_N3}"
+    IMG="${outdir}"/mri/nu$out_ext
+    mri_convert $T1_N3_mgz $IMG
+    # T1 Used for FLIRT
+    T1_brain_mgz="${indir}"/mri/brain$in_ext # orig_nu.mgz
+    IMG_brain="${outdir}"/mri/brain$out_ext
+    mri_convert $T1_brain_mgz $IMG_brain
+    # Brain skull-stripped
+    T1_brain_mgz="${indir}"/mri/brainmask$in_ext # orig_nu.mgz
+    IMG_brain="${outdir}"/mri/brain$out_ext
+    mri_convert $T1_brain_mgz $IMG_brain
+
+
+elif [ ! -f $IMG ]; then
+    error "IMG file does not exist: ${IMG}"
+else
+    bet_f=0.4  # parameter passed to FSL's  bet
+    IMG_brain="${outdir}"/mri/brain$out_ext
+    bet "$IMG" "$IMG_brain" -f "$bet_f" -R -s -m
+
 fi
-# T1 Used for FLIRT
-T1_brain_mgz="${indir}"/mri/brain$in_ext # orig_nu.mgz
-T1_brain="${outdir}"/mri/brain$out_ext
-mri_convert $T1_brain_mgz $T1_brain
-# T1 Used for FNIRT
-T1_mgz="${indir}"/mri/T1$in_ext # orig_nu.mgz
-T1="${outdir}"/mri/T1$out_ext
-mri_convert $T1_mgz $T1
-# Brain skull-stripped
-T1_brain_mgz="${indir}"/mri/brainmask$in_ext # orig_nu.mgz
-T1_brain="${outdir}"/mri/brain$out_ext
-mri_convert $T1_brain_mgz $T1_brain
 
 
 # mri_binarize --i "${indir}"/mri/aparc+aseg.mgz --o "${outdir}"/mri/WM_mask_ctx.nii.gz  --ctx-wm
@@ -99,8 +103,8 @@ mkdir -p $reg_dir
 echo "FLIRT LINEAR REGISTRATION"
 s2raff="${reg_dir}"/"struct2mni_affine.mat"
 T1_atlas="${reg_dir}"/"T1_atlas_flirt${out_ext}"
-echo flirt -ref "${mni_ref_brain}" -in "${T1_brain}" -out "${T1_atlas}" -omat "${s2raff}"
-flirt -ref "${mni_ref_brain}" -in "${T1_brain}" -out "${T1_atlas}" -omat "${s2raff}"
+echo flirt -ref "${mni_ref_brain}" -in "${IMG_brain}" -out "${T1_atlas}" -omat "${s2raff}"
+flirt -ref "${mni_ref_brain}" -in "${IMG_brain}" -out "${T1_atlas}" -omat "${s2raff}"
 
 # nonlinear registration
 #     of original image to reference image
@@ -109,16 +113,16 @@ flirt -ref "${mni_ref_brain}" -in "${T1_brain}" -out "${T1_atlas}" -omat "${s2ra
 
 echo "FNIRT NON-LINEAR REGISTRATION"
 s2rwarp="${reg_dir}"/"struct2mni_warp${out_ext}"
-echo fnirt --in="${T1}" --config="$fnirtconf" --ref="${mni_ref}" --aff="${s2raff}" --cout="${s2rwarp}"
-fnirt --in="${T1}" --config="$fnirtconf" --ref="${mni_ref}" --aff="${s2raff}" --cout="${s2rwarp}"
+echo fnirt --in="${IMG}" --config="$fnirtconf" --ref="${mni_ref}" --aff="${s2raff}" --cout="${s2rwarp}"
+fnirt --in="${IMG}" --config="$fnirtconf" --ref="${mni_ref}" --aff="${s2raff}" --cout="${s2rwarp}"
 # Test Warp
 T1_atlas2="${reg_dir}"/"T1_atlas_fnirt${out_ext}"
-applywarp --ref="${mni_ref}" --in="${T1}" --out="${T1_atlas2}" --warp="${s2rwarp}"
+applywarp --ref="${mni_ref}" --in="${IMG}" --out="${T1_atlas2}" --warp="${s2rwarp}"
 
 # Calculate inverse transformation
 echo "CALCULATING INVERSE TRANSFORM"
 r2swarp="${reg_dir}"/"mni2struct_warp${out_ext}"
-invwarp --ref="${T1_N3}" --warp="$s2rwarp" --out="$r2swarp"
+invwarp --ref="${IMG}" --warp="$s2rwarp" --out="$r2swarp"
 
 
 # apply inverse transformation to labels and brainmask
@@ -126,11 +130,11 @@ invwarp --ref="${T1_N3}" --warp="$s2rwarp" --out="$r2swarp"
 
 echo "APPLYING INVERSE TRANSFORM"
 atlas_native="${reg_dir}"/"atlas_native${out_ext}"
-applywarp --ref="${T1_N3}" --in="${atlas}" --out="${atlas_native}" --warp="${r2swarp}" --interp=nn --datatype=int
+applywarp --ref="${IMG}" --in="${atlas}" --out="${atlas_native}" --warp="${r2swarp}" --interp=nn --datatype=int
 
 brainmask_native="${reg_dir}"/"brain_mask_native${out_ext}"
-applywarp --ref="${T1_N3}" --in="${brainmask}" --out="${brainmask_native}" --warp="${r2swarp}" --interp=nn --datatype=int
+applywarp --ref="${IMG}" --in="${brainmask}" --out="${brainmask_native}" --warp="${r2swarp}" --interp=nn --datatype=int
 
 # Get Stats
 stats_dir="${outdir}/stats"
-python3.8 $PIPELINE_HOME/scripts/calc_stats.py -i $T1_N3 -WM $WM -LM $atlas_native -BM $brainmask_native -o $stats_dir
+python3 $PIPELINE_HOME/scripts/calc_stats.py -i $IMG -WM $WM -LM $atlas_native -BM $brainmask_native -o $stats_dir
