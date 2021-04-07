@@ -29,12 +29,21 @@ label_names[14]='Brainstem_rh'
 measures = ['mean', 'std', 'skew', 'kurtosis', 'min', 'max', 'nVox']
 
 
+def resample_mask2ref(mask, refImg):
+    resample = sitk.ResampleImageFilter()
+    resample.SetReferenceImage(refImg)
+    resample.SetDefaultPixelValue(0)
+    resample.SetInterpolator(sitk.sitkNearestNeighbor)
+    resample.AddCommand(sitk.sitkProgressEvent,
+                        lambda: sys.stdout.flush())
+    msk_resampled = resample.Execute(mask)
+    return msk_resampled
+
 
 def get_masked_stats(img_array, mask_array):
     masked_img = img_array[np.where(mask_array)]
     summary_stats = stats.describe(masked_img.ravel())
     nobs, minmax, mean, var, skew, kurtosis = summary_stats
-    #mini, maxi = minmax
     stats_dict = {'mean': mean, 'min': minmax[0], 'nVox': nobs,
                   'max': minmax[1], 'skew': skew, 'kurtosis': kurtosis}
     stats_dict['std'] = np.sqrt(var)
@@ -116,10 +125,20 @@ def get_arrays(T1, WM, LB, BM):
     return T1_arr, WM_arr, LB_arr, BM_arr
 
 
+def resample_to_T1(T1, WM, LB, BM):
+    ref_img = T1
+    resampled_masks = []
+    for msk in [WM, LB, BM]:
+        if not img_compare(msk, ref_img, v=True):
+            msk = resample_mask2ref(msk, ref_img)
+        resampled_masks.append(msk)
+    return resampled_masks[0], resampled_masks[1], resampled_masks[2]
+
+
 def check_img_consistent(T1, WM, LB, BM, v=0):
     ref_img = T1
     for img in [WM, LB, BM]:
-        img_compare(ref_img, img, v=v)
+        assert img_compare(ref_img, img, v=v)
 
 
 def img_compare(img1, img2, v=1):
@@ -142,10 +161,30 @@ def img_compare(img1, img2, v=1):
                                                        round_tpl(origin_2, 6)))
         print('direction: \n img 1 {} \n img 2 {}'.format(round_tpl(direction_1, 6),
                                                           round_tpl(direction_2, 6)))
-    assert np.allclose(size_1, size_2), 'Size missmatch {} not same as {}'.format(size_1, size_2) 
-    assert np.allclose(spacing_1, spacing_2), 'Spacing missmatch {} not same as {}'.format(spacing_1, spacing_2) 
-    assert np.allclose(origin_1, origin_2), 'Origin missmatch {} not same as {}'.format(origin_1, origin_2)
-    assert np.allclose(direction_1, direction_2), 'Direction missmatch {} not same as {}'.format(direction_1, direction_2) 
+    same_size = np.allclose(size_1, size_2), 
+    same_spacing = np.allclose(spacing_1, spacing_2)
+    same_origin = np.allclose(origin_1, origin_2)
+    same_direction = np.allclose(direction_1, direction_2)
+    same = same_size and same_spacing and same_origin and same_direction
+    if v:
+        print(f"equivalent: {same}")
+        if not same_size:
+            print("Size missmatch {} not same as {}".format(size_1, size_2))
+        if not same_spacing:
+            print("Spacing missmatch {} not same as {}".format(spacing_1, spacing_2))
+        if not same_origin:
+            print("Origin missmatch {} not same as {}".format(origin_1, origin_2))
+        if not same_direction:
+            print("Direction missmatch {} not same as {}".format(direction_1, direction_2))
+            
+    return same
+
+
+def save_masks(WM, LB, BM, CTX, outdir):
+    sitk.WriteImage(LB, join(outdir, 'Lobe_mask.nii.gz'))
+    sitk.WriteImage(BM, join(outdir, 'Brain_mask.nii.gz'))
+    sitk.WriteImage(WM, join(outdir, 'WhiteMatter_mask.nii.gz'))
+    sitk.WriteImage(CTX, join(outdir, 'cortex_mask.nii.gz'))
 
 
 def main(T1_path, WM_path, LB_path, BM_path, outdir, debug):
@@ -153,31 +192,31 @@ def main(T1_path, WM_path, LB_path, BM_path, outdir, debug):
         os.makedirs(outdir)
     check_exist(T1_path, WM_path, LB_path, BM_path)
     T1, WM, LB, BM = load_images(T1_path, WM_path, LB_path, BM_path)
+    WM, LB, BM = resample_to_T1(T1, WM, LB, BM)
+    print("****** WM {}, LB {}, BM {}".format(WM.GetSize(), 
+                                              LB.GetSize(), 
+                                              BM.GetSize()))
     check_img_consistent(T1, WM, LB, BM)
     T1_arr, WM_arr, LB_arr, BM_arr = get_arrays(T1, WM, LB, BM)
 
     LB_arr2 = LB_arr * BM_arr
     ctx_arr = np.copy(LB_arr2)
-    ctx_arr[ctx_arr>8] = 0 # suppress subcortical regions
-    ctx_arr = ctx_arr > 0 # binarize volume
+    ctx_arr[ctx_arr > 8] = 0  # suppress subcortical regions
+    ctx_arr = ctx_arr > 0  # binarize volume
 
     stats_df = get_stats(T1_arr, WM_arr, LB_arr2, ctx_arr)
-    #stats_df.loc['Total'] = stats_df.sum()
     stats_df.index.name = 'Lobe'
     stats_df.to_csv(join(outdir, "WM_stats.csv"))
-    
-    #stats_dict, stats_dict_norm = get_T1_WM_stats(img_arr, msk_arr)
+
     T1_arr_norm = img_norm(T1_arr)
     norm_stats_df = get_stats(T1_arr_norm, WM_arr, LB_arr2, ctx_arr)
-    #norm_stats_df.loc['Total'] = norm_stats_df.sum()
     norm_stats_df.index.name = 'Lobe'
     norm_stats_df.to_csv(join(outdir, "WM_stats_norm.csv"))
-    
-    # save ctx arr
+
+    # save masks
     CTX = sitk.GetImageFromArray(ctx_arr.astype(np.uint8))
     CTX.CopyInformation(T1)
-    sitk.WriteImage(CTX, join(outdir, 'cortex_mask.nii.gz'))
-    
+    save_masks(WM, LB, BM, CTX, outdir)
 
 
 def get_parser():
