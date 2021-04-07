@@ -1,5 +1,5 @@
 # FS_T1_WM_PIPELINE
-Extracts WM intensity statistics using the freesurfer generated output.
+Extracts image intensity statistics of white matter (WM) across different lobes using the freesurfer generated output.
 
 ---
 ## Requirements
@@ -13,7 +13,7 @@ Originally tested with:
 1. Install [FSL](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation)
 2. Install [FreeSurfer](http://www.freesurfer.net/fswiki/DownloadAndInstall)
 3. Install [Python 3](https://www.liquidweb.com/kb/how-to-install-python-3-on-centos-7/) (example)
-4. Clone this repository \
+4. Clone this repository
 ```bash
 git clone https://github.com/pndni/FS_T1_WM_PIPELINE.git
 cd FS_T1_WM_PIPELINE
@@ -45,7 +45,7 @@ Run pipeline with (from project root):
 
 
 `<IMG_PATH>` [OPTIONAL ARGUMENT]: Input scan
- (e.g. `data/sub-12345.nii.gz`). If left blank, defaults to `recon-all-output/sub-12345/mri/nu.mgz`. \
+ (e.g. `input/sub-12345/sub-12345.nii.gz`). If left blank, defaults to `recon-all-output/sub-12345/mri/nu.mgz`. \
 Note: Input image must be in the same space as the one used to run freesurfer (not necessarily same resolution and spacing).
 
 ## Pipeline Summary
@@ -85,7 +85,7 @@ Note: Check to make sure mask files in the `stats` directory overlay correctly o
 ### WM_stats
 - Columns repersent different statistical measures
 - Rows represent different regions / lobes
-- Last row represents the brain / cortical region (labels 1-8 of lobe mask)
+- Last row represents the entire brain / cortical region (labels 1-8 of lobe mask)
 
 
 ### Lobe Mask

@@ -115,8 +115,9 @@ flirt -ref "${mni_ref_brain}" -in "${IMG_brain}" -out "${T1_atlas}" -omat "${s2r
 
 echo "FNIRT NON-LINEAR REGISTRATION"
 s2rwarp="${reg_dir}"/"struct2mni_warp${out_ext}"
-echo fnirt --in="${IMG}" --config="$fnirtconf" --ref="${mni_ref}" --aff="${s2raff}" --cout="${s2rwarp}"
-fnirt --in="${IMG}" --config="$fnirtconf" --ref="${mni_ref}" --aff="${s2raff}" --cout="${s2rwarp}"
+echo fnirt --in="${IMG}" --config="${fnirtconf}" --ref="${mni_ref}" --aff="${s2raff}" --cout="${s2rwarp}"
+fnirt --in="${IMG}" --config="${fnirtconf}" --ref="${mni_ref}" --aff="${s2raff}" --cout="${s2rwarp}"
+
 # Test Warp
 T1_atlas2="${reg_dir}"/"T1_atlas_fnirt${out_ext}"
 applywarp --ref="${mni_ref}" --in="${IMG}" --out="${T1_atlas2}" --warp="${s2rwarp}"
