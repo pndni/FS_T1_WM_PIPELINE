@@ -45,13 +45,13 @@ if [ -d $outdir ]; then
     rm -rf $outdir
 fi
 
-mkdir -p $outdir/logs
+#mkdir -p $outdir/logs
 mkdir -p $outdir/mri
 
-PIPELINE_HOME=$PWD
-if [ -z $PIPELINE_HOME ]; then
-    export PIPELINE_HOME=$PWD
-fi
+#PIPELINE_HOME=$PWD
+#if [ -z "${PIPELINE_HOME}" ]; then
+#    export PIPELINE_HOME=$PWD
+#fi
 
 # Reference Files
 atlas="${PIPELINE_HOME}"/models/atlas_labels_ref.nii.gz
@@ -68,6 +68,8 @@ echo "CONVERTING ${in_ext} to ${out_ext}"
 if [ $IMG == "freesurfer_default" ]; then
     # Freesurfer IMG
     T1_N3_mgz="${indir}"/mri/nu$in_ext # orig_nu.mgz
+    echo "Image not specified: Using default freesurfer (${T1_N3_mgz})"
+
     IMG="${outdir}"/mri/nu$out_ext
     mri_convert $T1_N3_mgz $IMG
     # T1 Used for FLIRT
