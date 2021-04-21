@@ -89,7 +89,7 @@ if [ -d $OUTDIR ]; then
     rm -rf $OUTDIR
 fi
 
-#mkdir -p $OUTDIR/logs
+mkdir -p $OUTDIR
 pushd "$OUTDIR" > /dev/null
 
 # Check
@@ -203,21 +203,33 @@ logcmd brainmask_2_native_log applywarp --ref="${IMG}" --in="${brainmask}" --out
 
 # Get Stats
 stats_dir="${OUTDIR}/stats"
-python3 $PIPELINE_HOME/scripts/calc_stats.py -i $IMG -WM $WM -LM $atlas_native -BM $brainmask_native -o $stats_dir |& logs/calc_stats_log
+python3 $PIPELINE_HOME/scripts/calc_stats.py -i $IMG -WM $WM -GM $GM -LM $atlas_native -BM $brainmask_native -o $stats_dir |& logs/calc_stats_log
 
 # Cleanup
 ERROR=0
-WARNING=0
+#WARNING=0
 
-declare -a arr=("logs" "${stats_dir}" "${reg_dir}" "${}")
-for i in "${arr[@]}"
+declare -a arr=("logs" "${stats_dir}" "${reg_dir}" "${mri_dir}")
+for d in "${arr[@]}"
 do
-   echo "$i"
+    if [ ! -d $d ]; then
+        echo "ERROR: ${d} does not exist"
+        ERROR=1
+    fi
    # or do whatever with individual element of the array
 done
 
+if [ "${CLEANUP_FLAG}"==1 ]; then
+    if [ ! -d ${reg_dir} ]; then
+        rm -rf ${reg_dir}
+    fi
+    if [ ! -d ${mri_dir} ]; then
+        rm -rf ${mri_dir}
+    fi
+fi
+
 echo $ERROR > errorflag
-echo $WARNING > warningflag
+#echo $WARNING > warningflag
 
 popd > /dev/null
 
