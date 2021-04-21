@@ -13,6 +13,20 @@ error() {
   exit 1
 }
 
+check_file() {
+    file=$1
+    if [ ! -f $file ]; then
+        error "ERROR: FILE DOES NOTES EXIST: ${file}"
+    fi
+}
+
+check_dir() {
+    file=$1
+    if [ ! -d $file ]; then
+        error "ERROR: DIRECTORY DOES NOTES EXIST: ${file}"
+    fi
+}
+
 # Check FSLOUTPUTTYPE and store appropriate extension in "ext"
 case "$FSLOUTPUTTYPE" in
     NIFTI_GZ)
@@ -48,6 +62,11 @@ fi
 #mkdir -p $outdir/logs
 mkdir -p $outdir/mri
 
+# Check
+check_dir $indir
+check_dir $outdir
+check_file $FS_LICENSE
+
 #PIPELINE_HOME=$PWD
 #if [ -z "${PIPELINE_HOME}" ]; then
 #    export PIPELINE_HOME=$PWD
@@ -59,6 +78,12 @@ brainmask="${PIPELINE_HOME}"/models/icbm_mask_ref.nii.gz
 mni_ref="${PIPELINE_HOME}"/models/MNI152_T1_2mm.nii.gz
 mni_ref_brain="${PIPELINE_HOME}"/models/MNI152_T1_2mm_brain.nii.gz # reference for registration
 fnirtconf="${PIPELINE_HOME}"/models/T1_2_MNI152_2mm.cnf
+
+check_file $atlas
+check_file $brainmask
+check_file $mni_ref
+check_file $mni_ref_brain
+check_file $fnirtconf
 
 in_ext=".mgz"
 out_ext=$ext
@@ -81,7 +106,6 @@ if [ $IMG == "freesurfer_default" ]; then
     IMG_brain="${outdir}"/mri/brain$out_ext
     mri_convert $T1_brain_mgz $IMG_brain
 
-
 elif [ ! -f $IMG ]; then
     error "IMG file does not exist: ${IMG}"
 else
@@ -91,14 +115,20 @@ else
 
 fi
 
+# Double check that files and directories exist
+check_file $IMG
+check_file $IMG_brain
+
 
 # mri_binarize --i "${indir}"/mri/aparc+aseg.mgz --o "${outdir}"/mri/WM_mask_ctx.nii.gz  --ctx-wm
 WM="${outdir}/mri/WM_mask_all${out_ext}"
 mri_binarize --i "${indir}"/mri/aparc+aseg$in_ext --o $WM --all-wm
 
+check_file $WM
+
 
 # REGISTRATION
-reg_dir=$outdir/registration
+reg_dir="${outdir}/registration"
 mkdir -p $reg_dir
 
 # linear registration
@@ -107,6 +137,9 @@ s2raff="${reg_dir}"/"struct2mni_affine.mat"
 T1_atlas="${reg_dir}"/"T1_atlas_flirt${out_ext}"
 echo flirt -ref "${mni_ref_brain}" -in "${IMG_brain}" -out "${T1_atlas}" -omat "${s2raff}"
 flirt -ref "${mni_ref_brain}" -in "${IMG_brain}" -out "${T1_atlas}" -omat "${s2raff}"
+check_file $T1_atlas
+check_file $s2raff
+
 
 # nonlinear registration
 #     of original image to reference image
