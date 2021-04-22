@@ -16,5 +16,5 @@ dockerimg=pndni/fs_t1_pipeline:$ver
 SINGULARITY_TMPDIR=$tmpdir
 export SINGULARITY_TMPDIR
 
-singularity build fs_t1_pipeline_$ver.simg docker://$dockerimg
+/usr/local/bin/singularity build fs_t1_pipeline_$ver.simg docker://$dockerimg
 rm -rf $SINGULARITY_TMPDIR

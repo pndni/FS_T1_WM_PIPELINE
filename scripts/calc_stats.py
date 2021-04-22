@@ -104,9 +104,9 @@ def get_stats(T1_arr, WM_arr, GM_arr, LB_arr, ctx_arr):
         stats_dict_wm = get_masked_stats(T1_arr, WM_mask_i)
         stats_dict_gm = get_masked_stats(T1_arr, GM_mask_i)
         for m in measures:
-            print('\t \t {} WM: {}'.format(m, stats_dict_wm[m]))
+            #print('\t \t {} WM: {}'.format(m, stats_dict_wm[m]))
             stats_df_wm.loc[lobe, m] = stats_dict_wm[m]
-            print('\t \t {} GM: {}'.format(m, stats_dict_gm[m]))
+            #print('\t \t {} GM: {}'.format(m, stats_dict_gm[m]))
             stats_df_gm.loc[lobe, m] = stats_dict_gm[m]
     # Whole Brain Stats
     print('\t Cortex')
@@ -116,9 +116,9 @@ def get_stats(T1_arr, WM_arr, GM_arr, LB_arr, ctx_arr):
     stats_dict_wm = get_masked_stats(T1_arr, WM_ctx)
     stats_dict_gm = get_masked_stats(T1_arr, GM_ctx)
     for m in measures:
-        print('\t \t {} WM: {}'.format(m, stats_df_wm[m]))
+        #print('\t \t {} WM: {}'.format(m, stats_df_wm[m]))
         stats_df_wm.loc['Cortex', m] = stats_dict_wm[m]
-        print('\t \t {} GM: {}'.format(m, stats_df_gm[m]))
+        #print('\t \t {} GM: {}'.format(m, stats_df_gm[m]))
         stats_df_gm.loc['Cortex', m] = stats_dict_gm[m]
     return stats_df_wm, stats_df_gm
 

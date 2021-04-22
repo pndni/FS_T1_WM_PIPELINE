@@ -216,10 +216,12 @@ do
         echo "ERROR: ${d} does not exist"
         ERROR=1
     fi
-   # or do whatever with individual element of the array
+
 done
 
-if [ "${CLEANUP_FLAG}"==1 ]; then
+echo "CLEANUP_FLAG: ${CLEANUP_FLAG}"
+if [ "${CLEANUP_FLAG}" == 1 ]; then
+    echo "Cleaning workdir"
     if [ ! -d ${reg_dir} ]; then
         rm -rf ${reg_dir}
     fi
@@ -230,6 +232,11 @@ fi
 
 echo $ERROR > errorflag
 #echo $WARNING > warningflag
+
+echo "selfhash: ${selfhash}" > pipeline.info
+echo "pipeline version: ${version}" >> pipeline.info
+echo "fsl version: ${fslversion}" >> pipeline.info
+echo "freesurfer version: ${fsversion}" >> pipeline.info
 
 popd > /dev/null
 
