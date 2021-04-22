@@ -113,13 +113,13 @@ def get_stats(T1_arr, WM_arr, GM_arr, LB_arr, ctx_arr):
     WM_ctx = WM_arr * ctx_arr
     GM_ctx = GM_arr * ctx_arr
     
-    stats_df_wm = get_masked_stats(T1_arr, WM_ctx)
-    stats_df_gm = get_masked_stats(T1_arr, GM_ctx)
+    stats_dict_wm = get_masked_stats(T1_arr, WM_ctx)
+    stats_dict_gm = get_masked_stats(T1_arr, GM_ctx)
     for m in measures:
         print('\t \t {} WM: {}'.format(m, stats_df_wm[m]))
-        stats_df_wm.loc['Cortex', m] = stats_df_wm[m]
+        stats_df_wm.loc['Cortex', m] = stats_dict_wm[m]
         print('\t \t {} GM: {}'.format(m, stats_df_gm[m]))
-        stats_df_gm.loc['Cortex', m] = stats_df_gm[m]
+        stats_df_gm.loc['Cortex', m] = stats_dict_gm[m]
     return stats_df_wm, stats_df_gm
 
 

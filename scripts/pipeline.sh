@@ -137,7 +137,7 @@ if [ $IMG == "freesurfer_default" ]; then
 elif [ -f $IMG ]; then
     bet_f=0.4  # parameter passed to FSL's  bet
     IMG_brain="${mri_dir}"/brain$out_ext
-    logcmd betlog bet "$IMG" "$IMG_brain" -f "$bet_f" -R -s -m
+    logcmd bet_log bet "$IMG" "$IMG_brain" -f "$bet_f" -R -s -m
 else
     error "IMG file does not exist: ${IMG}"
 fi
@@ -166,7 +166,7 @@ echo "FLIRT LINEAR REGISTRATION"
 s2raff="${reg_dir}"/"struct2mni_affine.mat"
 T1_atlas="${reg_dir}"/"T1_atlas_flirt${out_ext}"
 echo flirt -ref "${mni_ref_brain}" -in "${IMG_brain}" -out "${T1_atlas}" -omat "${s2raff}"
-logcmd flirtlog flirt -ref "${mni_ref_brain}" -in "${IMG_brain}" -out "${T1_atlas}" -omat "${s2raff}"
+logcmd flirt_log flirt -ref "${mni_ref_brain}" -in "${IMG_brain}" -out "${T1_atlas}" -omat "${s2raff}"
 check_file $T1_atlas
 check_file $s2raff
 
@@ -179,7 +179,7 @@ check_file $s2raff
 echo "FNIRT NON-LINEAR REGISTRATION"
 s2rwarp="${reg_dir}"/"struct2mni_warp${out_ext}"
 echo fnirt --in="${IMG}" --config="${fnirtconf}" --ref="${mni_ref}" --aff="${s2raff}" --cout="${s2rwarp}"
-logcmd fnirtlog fnirt --in="${IMG}" --config="${fnirtconf}" --ref="${mni_ref}" --aff="${s2raff}" --cout="${s2rwarp}"
+logcmd fnirt_log fnirt --in="${IMG}" --config="${fnirtconf}" --ref="${mni_ref}" --aff="${s2raff}" --cout="${s2rwarp}"
 
 # Warp from native to standard space to QC
 T1_atlas2="${reg_dir}"/"T1_atlas_fnirt${out_ext}"
@@ -188,7 +188,7 @@ logcmd t1_2_ref_log applywarp --ref="${mni_ref}" --in="${IMG}" --out="${T1_atlas
 # Calculate inverse transformation
 echo "CALCULATING INVERSE TRANSFORM"
 r2swarp="${reg_dir}"/"mni2struct_warp${out_ext}"
-logcmd invwarplog invwarp --ref="${IMG}" --warp="$s2rwarp" --out="$r2swarp"
+logcmd inv_warp_log invwarp --ref="${IMG}" --warp="$s2rwarp" --out="$r2swarp"
 
 
 # apply inverse transformation to labels and brainmask
@@ -203,7 +203,7 @@ logcmd brainmask_2_native_log applywarp --ref="${IMG}" --in="${brainmask}" --out
 
 # Get Stats
 stats_dir="${OUTDIR}/stats"
-python3 $PIPELINE_HOME/scripts/calc_stats.py -i $IMG -WM $WM -GM $GM -LM $atlas_native -BM $brainmask_native -o $stats_dir |& logs/calc_stats_log
+python3 $PIPELINE_HOME/scripts/calc_stats.py -i $IMG -WM $WM -GM $GM -LM $atlas_native -BM $brainmask_native -o $stats_dir |& tee logs/stats_log
 
 # Cleanup
 ERROR=0
