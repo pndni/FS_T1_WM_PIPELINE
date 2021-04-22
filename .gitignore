@@ -2,7 +2,9 @@ __pycache__
 tmp
 .cache
 venv
-
+build/*
+!build/build_and_upload_docker.sh
+!build/build_singularity.sh
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -13,7 +15,6 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-build/
 develop-eggs/
 dist/
 downloads/
