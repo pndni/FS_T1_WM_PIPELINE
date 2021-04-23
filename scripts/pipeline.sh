@@ -222,12 +222,8 @@ done
 echo "CLEANUP_FLAG: ${CLEANUP_FLAG}"
 if [ "${CLEANUP_FLAG}" == 1 ]; then
     echo "Cleaning workdir"
-    if [ ! -d ${reg_dir} ]; then
-        rm -rf ${reg_dir}
-    fi
-    if [ ! -d ${mri_dir} ]; then
-        rm -rf ${mri_dir}
-    fi
+    rm -rf ${reg_dir}
+    rm -rf ${mri_dir}
 fi
 
 echo $ERROR > errorflag
