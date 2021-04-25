@@ -10,6 +10,22 @@ Originally tested with:
 - Python 3.6.13 (packages list in requirements.txt)
 
 ## Setup
+
+### Singularity
+1. Install [Singularity](https://sylabs.io/guides/3.7/user-guide/quick_start.html)
+2. Clone this repository
+```bash
+git clone https://github.com/pndni/FS_T1_WM_PIPELINE.git
+cd FS_T1_WM_PIPELINE
+```
+3. Build singularity container from docker [image](https://hub.docker.com/r/pndni/fs_t1_pipeline)
+```bash
+chmod u+x build/*.sh
+./build/build_singularity.sh
+```
+
+
+### Manual Install
 1. Install [FSL](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation)
 2. Install [FreeSurfer](http://www.freesurfer.net/fswiki/DownloadAndInstall)
 3. Install [Python 3](https://www.liquidweb.com/kb/how-to-install-python-3-on-centos-7/) (example)

@@ -11,5 +11,10 @@ ver=$1
 #git clone --branch $ver https://github.com/pndni/FS_T1_WM_PIPELINE.git $tmpdir
 #pushd $tmpdir
 
-docker build -t pndni/fs_t1_pipeline:$ver .
-docker push pndni/fs_t1_pipeline:$ver
+#docker build -t pndni/fs_t1_pipeline:$ver .
+#docker push pndni/fs_t1_pipeline:$ver
+
+
+docker build -t pndni/fs_t1_pipeline .
+docker tag pndni/fs_t1_pipeline pndni/fs_t1_pipeline:$ver
+docker push pndni/fs_t1_pipeline

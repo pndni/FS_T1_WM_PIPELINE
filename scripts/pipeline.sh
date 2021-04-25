@@ -38,7 +38,7 @@ logcmd(){
     "$@" > >(tee ${logbase}_stdout.txt) 2> >(tee ${logbase}_stderr.txt >&2) || error "logcmd $1"
 }
 
-version=1.0.0-alpha
+version=alpha-1.0.1
 
 # Calculate and store hash of this file for logging and reproducibility
 selfhash=$(sha256sum $0)
@@ -60,7 +60,7 @@ case "$FSLOUTPUTTYPE" in
 esac
 
 #unset INDIR OUTDIR IMG FS_LICENSE
-usage="Usage: pipeline.sh [ -r subject recon ] [ -o subject_outdir ] [ -l FS_LICENSE ] [ -i IMG ] [ -c CLEANUP_FLAG ]"
+usage="Usage: pipeline.sh [ -r SUBJ_RECON_DIR ] [ -o SUBJ_OUT_DIR ] [ -l FS_LICENSE ] [ -i IMG ] [ -c CLEANUP_FLAG ]"
 
 # DEFAULT VALUES
 IMG="freesurfer_default"
@@ -86,7 +86,8 @@ done
 echo "Image input: ${IMG}"
 
 if [ -d $OUTDIR ]; then
-    rm -rf $OUTDIR
+    error "ERROR: OUTDIR (-o) already exists ${OUTDIR}"
+    #rm -rf $OUTDIR
 fi
 
 mkdir -p $OUTDIR
@@ -175,7 +176,6 @@ check_file $s2raff
 #     of original image to reference image
 #     estimates bias field and nonlinear intensity mapping between images
 #     Uses linear registration as initial transformation
-
 echo "FNIRT NON-LINEAR REGISTRATION"
 s2rwarp="${reg_dir}"/"struct2mni_warp${out_ext}"
 echo fnirt --in="${IMG}" --config="${fnirtconf}" --ref="${mni_ref}" --aff="${s2raff}" --cout="${s2rwarp}"
@@ -193,7 +193,6 @@ logcmd inv_warp_log invwarp --ref="${IMG}" --warp="$s2rwarp" --out="$r2swarp"
 
 # apply inverse transformation to labels and brainmask
 #    use nearest neighbor interpolation
-
 echo "APPLYING INVERSE TRANSFORM"
 atlas_native="${reg_dir}"/"atlas_native${out_ext}"
 logcmd atlas_2_native_log applywarp --ref="${IMG}" --in="${atlas}" --out="${atlas_native}" --warp="${r2swarp}" --interp=nn --datatype=int

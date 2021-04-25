@@ -2,8 +2,8 @@
 
 set -eu
 
-ver=$1
-
+ver=${1:-latest}
+echo "Building singularity container: pndni/fs_t1_pipeline:${ver}"
 echo $PWD
 tmpdir=$PWD/tmpdir
 if [ -d $tmpdir ]; then
