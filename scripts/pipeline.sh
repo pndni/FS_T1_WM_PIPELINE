@@ -104,8 +104,9 @@ check_file $FS_LICENSE
 #fi
 
 # Reference Files
+#brainmask="${PIPELINE_HOME}"/models/icbm_mask_ref.nii.gz # Used for nornalization constant
+brainmask="${PIPELINE_HOME}"/models/MNI152_T1_2mm_bet_brain_mask.nii.gz # Used for nornalization constant
 atlas="${PIPELINE_HOME}"/models/atlas_labels_ref.nii.gz
-brainmask="${PIPELINE_HOME}"/models/icbm_mask_ref.nii.gz
 mni_ref="${PIPELINE_HOME}"/models/MNI152_T1_2mm.nii.gz
 mni_ref_brain="${PIPELINE_HOME}"/models/MNI152_T1_2mm_brain.nii.gz # reference for registration
 fnirtconf="${PIPELINE_HOME}"/models/T1_2_MNI152_2mm.cnf
@@ -153,8 +154,10 @@ WM="${mri_dir}"/WM_mask_all"${out_ext}"
 mri_binarize --i "${INDIR}"/mri/aparc+aseg"${in_ext}" --o $WM --all-wm
 check_file $WM
 
-GM="${mri_dir}"/GM_mask_all"${out_ext}"
-mri_binarize --i "${INDIR}"/mri/aparc+aseg"${in_ext}" --o $GM --gm
+GM_mgz="${INDIR}"/mri/ribbon$in_ext
+GM="${mri_dir}"/GM_mask_ctx"${out_ext}"
+#mri_binarize --i "${INDIR}"/mri/aparc+aseg"${in_ext}" --o $GM --gm
+mri_binarize --i $GM_mgz --o $GM --match 3 42
 check_file $GM
 
 

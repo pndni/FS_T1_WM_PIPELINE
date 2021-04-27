@@ -41,6 +41,8 @@ def resample_mask2ref(mask, refImg):
 
 
 def get_masked_stats(img_array, mask_array):
+    if mask_array.sum() == 0:
+        return {m: np.NaN for m in measures}
     masked_img = img_array[np.where(mask_array)]
     summary_stats = stats.describe(masked_img.ravel())
     nobs, minmax, mean, var, skew, kurtosis = summary_stats
@@ -85,7 +87,7 @@ def load_images(T1_path, WM_path, GM_path, LB_path, BM_path):
     return T1, WM, GM, LB, BM
 
 
-def get_stats(T1_arr, WM_arr, GM_arr, LB_arr, ctx_arr):
+def get_stats(T1_arr, WM_arr, GM_arr, LB_arr, ctx_arr, BM_arr):
     labels = list(label_names.keys())
     lobes = label_names.values()
     assert np.alltrue(np.sort([0]+labels) == np.sort(np.unique(LB_arr))), "labels {}, atlas lbls {}".format(labels, np.unique(LB_arr))
@@ -108,18 +110,32 @@ def get_stats(T1_arr, WM_arr, GM_arr, LB_arr, ctx_arr):
             stats_df_wm.loc[lobe, m] = stats_dict_wm[m]
             #print('\t \t {} GM: {}'.format(m, stats_dict_gm[m]))
             stats_df_gm.loc[lobe, m] = stats_dict_gm[m]
-    # Whole Brain Stats
+    # Cortex Stats
     print('\t Cortex')
     WM_ctx = WM_arr * ctx_arr
     GM_ctx = GM_arr * ctx_arr
     
-    stats_dict_wm = get_masked_stats(T1_arr, WM_ctx)
-    stats_dict_gm = get_masked_stats(T1_arr, GM_ctx)
+    stats_dict_wm_ctx = get_masked_stats(T1_arr, WM_ctx)
+    stats_dict_gm_ctx = get_masked_stats(T1_arr, GM_ctx)
     for m in measures:
         #print('\t \t {} WM: {}'.format(m, stats_df_wm[m]))
-        stats_df_wm.loc['Cortex', m] = stats_dict_wm[m]
+        stats_df_wm.loc['Cortex', m] = stats_dict_wm_ctx[m]
         #print('\t \t {} GM: {}'.format(m, stats_df_gm[m]))
-        stats_df_gm.loc['Cortex', m] = stats_dict_gm[m]
+        stats_df_gm.loc['Cortex', m] = stats_dict_gm_ctx[m]
+    
+    # Whole Brain Stats
+    print('\t Brain')
+    WM_brn = WM_arr * BM_arr
+    GM_brn = GM_arr * BM_arr
+    
+    stats_dict_wm_brn = get_masked_stats(T1_arr, WM_ctx)
+    stats_dict_gm_brn = get_masked_stats(T1_arr, GM_ctx)
+    for m in measures:
+        #print('\t \t {} WM: {}'.format(m, stats_df_wm[m]))
+        stats_df_wm.loc['Brain', m] = stats_dict_wm_brn[m]
+        #print('\t \t {} GM: {}'.format(m, stats_df_gm[m]))
+        stats_df_gm.loc['Brain', m] = stats_dict_gm_brn[m]
+
     return stats_df_wm, stats_df_gm
 
 
@@ -196,11 +212,11 @@ def img_compare(img1, img2, v=1):
 
 
 def save_masks(WM, GM, LB, BM, CTX, outdir):
-    sitk.WriteImage(LB, join(outdir, 'Lobe_mask.nii.gz'))
-    sitk.WriteImage(BM, join(outdir, 'Brain_mask.nii.gz'))
-    sitk.WriteImage(WM, join(outdir, 'WhiteMatter_mask.nii.gz'))
-    sitk.WriteImage(GM, join(outdir, 'GrayMatter_mask.nii.gz'))
-    sitk.WriteImage(CTX, join(outdir, 'cortex_mask.nii.gz'))
+    sitk.WriteImage(LB, join(outdir, 'Lobe_Mask.nii.gz'))
+    sitk.WriteImage(BM, join(outdir, 'Brain_Mask.nii.gz'))
+    sitk.WriteImage(WM, join(outdir, 'WhiteMatter_Mask.nii.gz'))
+    sitk.WriteImage(GM, join(outdir, 'GrayMatter_Mask.nii.gz'))
+    sitk.WriteImage(CTX, join(outdir, 'Cortex_Mask.nii.gz'))
 
 
 def main(T1_path, WM_path, GM_path, LB_path, BM_path, outdir, debug):
@@ -221,14 +237,14 @@ def main(T1_path, WM_path, GM_path, LB_path, BM_path, outdir, debug):
     ctx_arr[ctx_arr > 8] = 0  # suppress subcortical regions
     ctx_arr = ctx_arr > 0  # binarize volume
 
-    stats_df_wm, stats_df_gm = get_stats(T1_arr, WM_arr, GM_arr, LB_arr2, ctx_arr)
+    stats_df_wm, stats_df_gm = get_stats(T1_arr, WM_arr, GM_arr, LB_arr2, ctx_arr, BM_arr)
     stats_df_wm.index.name = 'Lobe'
     stats_df_gm.index.name = 'Lobe'
     stats_df_wm.to_csv(join(outdir, "WM_stats.csv"))
     stats_df_gm.to_csv(join(outdir, "GM_stats.csv"))
 
     T1_arr_norm = img_norm(T1_arr)
-    norm_stats_df_wm, norm_stats_df_gm = get_stats(T1_arr_norm, WM_arr, GM_arr, LB_arr2, ctx_arr)
+    norm_stats_df_wm, norm_stats_df_gm = get_stats(T1_arr_norm, WM_arr, GM_arr, LB_arr2, ctx_arr, BM_arr)
     norm_stats_df_wm.index.name = 'Lobe'
     norm_stats_df_gm.index.name = 'Lobe'
     norm_stats_df_wm.to_csv(join(outdir, "WM_stats_norm.csv"))
@@ -237,6 +253,7 @@ def main(T1_path, WM_path, GM_path, LB_path, BM_path, outdir, debug):
     # save masks
     CTX = sitk.GetImageFromArray(ctx_arr.astype(np.uint8))
     CTX.CopyInformation(T1)
+
     save_masks(WM, GM, LB, BM, CTX, outdir)
 
 
