@@ -1,31 +1,28 @@
 # FS_T1_WM_PIPELINE
-Extracts image intensity statistics of white matter (WM) across different lobes using the freesurfer generated output.
+Extracts image intensity statistics of white matter (WM) and gray matter (GM) across different lobes using the freesurfer generated output. Whole brain intensity statistics are also calculated for normalization.
 
 ---
-## Requirements
-Originally tested with:
-- Ubuntu 20.04.2 LTS
-- FLIRT version 6.0.1
-- Freesurfer 6.0.1
-- Python 3.6.13 (packages list in requirements.txt)
+
 
 ## Setup
 
-### Singularity
+### Workflow 1: Singularity
 1. Install [Singularity](https://sylabs.io/guides/3.7/user-guide/quick_start.html)
 2. Clone this repository
 ```bash
 git clone https://github.com/pndni/FS_T1_WM_PIPELINE.git
 cd FS_T1_WM_PIPELINE
 ```
-3. Build singularity container from docker [image](https://hub.docker.com/r/pndni/fs_t1_pipeline)
+3. Build singularity container from docker [image](https://hub.docker.com/r/pndni/fs_t1_pipeline). Optional input `$TAG` for particular version (latest if left blank). 
 ```bash
 chmod u+x build/*.sh
-./build/build_singularity.sh
+./build/build_singularity.sh ${TAG}
 ```
 
 
-### Manual Install
+### Workflow 2: Manual Install
+
+
 1. Install [FSL](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation)
 2. Install [FreeSurfer](http://www.freesurfer.net/fswiki/DownloadAndInstall)
 3. Install [Python 3](https://www.liquidweb.com/kb/how-to-install-python-3-on-centos-7/) (example)
@@ -45,10 +42,27 @@ export PIPELINE_HOME=${PWD}
 ```
 ## Usage
 
-Run pipeline with (from project root):
+### Workflow 1
 ```bash
-./scripts/pipeline.sh <INDIR> <OUTDIR> <FREESURFER_LICENSE> <IMG_PATH>
+singularity run \
+--bind "$indir":/mnt/indir:ro \
+--bind "$outdir":/mnt/outdir \
+--cleanenv \
+fs_t1_pipeline_latest.simg \ 
+ -r $SUBJ_RECON_DIR -o $SUBJ_OUT_DIR \ 
+ -l $FS_LICENSE [ -i $IMG ] [ -c $CLEANUP_FLAG ]
+
 ```
+### Workflow 2
+```bash
+./scripts/pipeline.sh \ 
+ -r $SUBJ_RECON_DIR -o $SUBJ_OUT_DIR \ 
+ -l $FS_LICENSE [ -i $IMG ] [ -c $CLEANUP_FLAG ]
+```
+### Input Arguments
+
+Run pipeline with (from project root):
+
 
 `<INDIR>` - Path to input directory. This is the output of freesurfer's recon all \
 (e.g. `recon-all-output/sub-12345`).
@@ -105,7 +119,7 @@ Note: Check to make sure mask files in the `stats` directory overlay correctly o
 
 
 ### Lobe Mask
-Label names for lobe mask (Lobe_mask.nii.gz)
+Label names for lobe mask (Lobe_Mask.nii.gz)
 
 | Index | Region                | Hemisphere  |
 |-------|-----------------------|-------------|
@@ -123,3 +137,10 @@ Label names for lobe mask (Lobe_mask.nii.gz)
 | 12.   | Cerebellum            | right       |
 | 13.   | Sub-cortex            | right       |
 | 14.   | Brainstem             | right       |
+
+
+### Pipeline originally tested with:
+- Ubuntu 20.04.2 LTS
+- FLIRT version 6.0.1
+- Freesurfer 6.0.1
+- Python 3.6.13 (packages list in requirements.txt)
