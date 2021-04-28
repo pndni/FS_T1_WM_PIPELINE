@@ -38,7 +38,7 @@ logcmd(){
     "$@" > >(tee ${logbase}_stdout.txt) 2> >(tee ${logbase}_stderr.txt >&2) || error "logcmd $1"
 }
 
-version=alpha-1.0.1
+version=alpha-1.0.2
 
 # Calculate and store hash of this file for logging and reproducibility
 selfhash=$(sha256sum $0)
@@ -60,7 +60,7 @@ case "$FSLOUTPUTTYPE" in
 esac
 
 #unset INDIR OUTDIR IMG FS_LICENSE
-usage="Usage: pipeline.sh [ -r SUBJ_RECON_DIR ] [ -o SUBJ_OUT_DIR ] [ -l FS_LICENSE ] [ -i IMG ] [ -c CLEANUP_FLAG ]"
+usage="Usage: pipeline.sh [ -r SUBJ_RECON_DIR ] [ -o SUBJ_OUT_DIR ] [ -l FS_LICENSE ] [ -i IMG ] [ -c ]"
 
 # DEFAULT VALUES
 IMG="freesurfer_default"
@@ -205,7 +205,7 @@ logcmd brainmask_2_native_log applywarp --ref="${IMG}" --in="${brainmask}" --out
 
 # Get Stats
 stats_dir="${OUTDIR}/stats"
-python3 $PIPELINE_HOME/scripts/calc_stats.py -i $IMG -WM $WM -GM $GM -LM $atlas_native -BM $brainmask_native -o $stats_dir |& tee logs/stats_log
+python3 $PIPELINE_HOME/scripts/calc_stats.py -i $IMG -WM $WM -GM $GM -LM $atlas_native -BM $brainmask_native -o $stats_dir |& tee logs/stats_log.txt
 
 # Cleanup
 ERROR=0
