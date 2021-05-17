@@ -1,0 +1,15 @@
+label,label_name,cerebrum
+1,Frontal_rh,True
+2,Parietal_rh,True
+3,Temporal_rh,True
+4,Occipital_rh,True
+5,Frontal_lh,True
+6,Parietal_lh,True
+7,Temporal_lh,True
+8,Occipital_lh,True
+9,Cerebellum_lh,False
+10,Sub-cortical_lh,False
+11,Brainstem_lh,False
+12,Cerebellum_rh,False
+13,Sub-cortical_rh,False
+14,Brainstem_rh,False

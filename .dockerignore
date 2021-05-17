@@ -1,0 +1,4 @@
+*.simg
+tmp/*
+.git
+.cache
