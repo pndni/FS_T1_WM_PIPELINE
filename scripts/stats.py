@@ -185,7 +185,8 @@ def get_masked_stats(img_array, mask_array):
     return stats_dict
 
 
-def get_stats(IMG_arr, SM_arr, ref_df, BM_arr, CM_arr=None,
+def get_stats(IMG_arr, SM_arr, ref_df, BM_arr, 
+              row_tag, CM_arr=None,
               TM_arr=None, cerebrum_only=False, 
               vox_vol=None, save_path=None):
 
@@ -242,6 +243,7 @@ def get_stats(IMG_arr, SM_arr, ref_df, BM_arr, CM_arr=None,
             stats_df['volume [mm^3]'] = vox_vol * stats_df['nVox']
         # Save
     stats_df.index.name = 'Region'
+    stats_df.index = row_tag + "_" + stats_df.index
     if save_path is not None:
         stats_df.to_csv(save_path)
 
@@ -285,18 +287,21 @@ def main(IMG_path, WM_path, GM_path, CM_path, SM_path, BM_path,
     
     spacing = IMG.GetSpacing()
     vox_vol = np.prod(spacing)
-    print("\t GETTING GLOBAL STATS...")
-    get_stats(IMG_arr, SM_arr2, ref_df, BM_arr, CM_arr=CM_arr,
+    print("\t GETTING ALL STATS...")
+    get_stats(IMG_arr, SM_arr2, ref_df, BM_arr, 
+              row_tag="ALL", CM_arr=CM_arr,
               TM_arr=None, vox_vol=vox_vol, 
-              save_path=join(outdir, f"Global_stats_{tag}.csv"))
+              save_path=join(outdir, f"ALL_stats_{tag}.csv"))
     if WM_arr is not None:
         print("\t GETTING WM STATS...")
-        get_stats(IMG_arr, SM_arr2, ref_df, BM_arr, CM_arr=CM_arr,
+        get_stats(IMG_arr, SM_arr2, ref_df, BM_arr,
+                row_tag="WM", CM_arr=CM_arr,
                 TM_arr=WM_arr, vox_vol=vox_vol,
                 save_path=join(outdir, f"WM_stats_{tag}.csv"))
     if GM_arr is not None:
         print("\t GETTING GM STATS...")
-        get_stats(IMG_arr, SM_arr2, ref_df, BM_arr, CM_arr=CM_arr,
+        get_stats(IMG_arr, SM_arr2, ref_df, BM_arr,
+                row_tag="GM", CM_arr=CM_arr,
                 TM_arr=GM_arr, vox_vol=vox_vol, cerebrum_only=True,
                 save_path=join(outdir, f"GM_stats_{tag}.csv"))
     save_masks(IMG, WM_arr, GM_arr, CM_arr, SM_arr2, BM_arr, outdir, tag)
