@@ -205,7 +205,7 @@ Label names for lobe mask (Lobe_Mask.nii.gz)
 | 14.   | Brainstem             | right       |
 
 
-### Pipeline originally tested with:
+#### Pipeline originally tested with:
 - Ubuntu 20.04.2 LTS
 - FLIRT version 6.0.1
 - Freesurfer 6.0.1
