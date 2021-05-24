@@ -38,7 +38,7 @@ logcmd(){
     "$@" > >(tee ${logbase}_stdout.txt) 2> >(tee ${logbase}_stderr.txt >&2) || error "logcmd $1"
 }
 
-version=alpha-1.0.3
+version=1.0.4
 
 # Calculate and store hash of this file for logging and reproducibility
 selfhash=$(sha256sum $0)
