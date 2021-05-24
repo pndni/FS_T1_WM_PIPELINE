@@ -74,11 +74,11 @@ Run pipeline with (from project root):
 
 `-i` `<IMG>` [OPTIONAL ARGUMENT]: Path to input T1 scan
  (e.g. `input/sub-12345/T1_sub-12345.nii.gz`). If left blank, defaults to `recon-all-output/sub-12345/mri/nu.mgz`. \
-Note: Input image must be in the same space as the one used to run freesurfer (not necessarily same resolution and spacing).
+Note: Input image must be in the same space as the one used to run freesurfer (not necessarily same resolution and spacing). Output image statistics can be found under `out/sub-12345/stats`.
 
-`-j` `<IMG2>` [OPTIONAL ARGUMENT]: Secondary image.Apply the registration output used to calculate statistics for `<$IMG>` to `<$IMG2>`. Must be in the same space as `<$IMG>` (e.g. `input/sub-12345/T2_sub-12345.nii.gz`).
+`-j` `<IMG2>` [OPTIONAL ARGUMENT]: Secondary image. Output of registration for `<$IMG>` is used to calculate statistics for `<$IMG2>`. `<$IMG2>` must be in the same space as `<$IMG>` (e.g. `input/sub-12345/T2_sub-12345.nii.gz`). Output image statistics can be found under `out/sub-12345/stats2`.
 
-`-k` `<IMG3>` [OPTIONAL ARGUMENT]: Secondary image.Apply the registration output used to calculate statistics for `<$IMG>` to `<$IMG3>`. Must be in the same space as `<$IMG>` (e.g. `input/sub-12345/DWI-FA_sub-12345.nii.gz`).
+`-k` `<IMG3>` [OPTIONAL ARGUMENT]: Secondary image. Output of registration for `<$IMG>` is used to calculate statistics for `<$IMG3>`. `<$IMG3>` must be in the same space as `<$IMG>` (e.g. `input/sub-12345/DWI-FA_sub-12345.nii.gz`). Output image statistics can be found under `out/sub-12345/stats3`.
 
 `-c` - Cleanup Flag [OPTIONAL ARGUMENT]: Deletes all generated output except the statistics directory/directories (`stats*`).
 
