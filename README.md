@@ -1,5 +1,5 @@
 # FS_T1_WM_PIPELINE
-Extracts image intensity statistics of white matter (WM) and gray matter (GM) across different lobes using the freesurfer generated output. Whole brain intensity statistics are also calculated for normalization.
+Extracts image intensity statistics of white matter (WM) and gray matter (GM) across different regions using the freesurfer generated output and MNI152 templates.
 
 ---
 
@@ -48,74 +48,140 @@ singularity run \
 --bind "$indir":/mnt/indir:ro \
 --bind "$outdir":/mnt/outdir \
 --cleanenv \
-fs_t1_pipeline_latest.simg \ 
- -r $SUBJ_RECON_DIR -o $SUBJ_OUT_DIR \ 
- -l $FS_LICENSE [ -i $IMG ] [ -c $CLEANUP_FLAG ]
+fs_t1_pipeline_latest.simg <args>
 
 ```
 ### Workflow 2
 ```bash
-./scripts/pipeline.sh \ 
+./scripts/pipeline.sh <args> \ 
  -r $SUBJ_RECON_DIR -o $SUBJ_OUT_DIR \ 
- -l $FS_LICENSE [ -i $IMG ] [ -c $CLEANUP_FLAG ]
+ -l $FS_LICENSE [ -i $IMG ] [ -j $IMG2 ] [ -k $IMG3 ] [ -c ]
 ```
 ### Input Arguments
 
 Run pipeline with (from project root):
 
 
-`<INDIR>` - Path to input directory. This is the output of freesurfer's recon all \
+`-r` `<INDIR>` - Path to input directory. This is the output of freesurfer's recon all \
 (e.g. `recon-all-output/sub-12345`).
 
 
-`<OUTDIR>` - Path to output directory. Overwrites anything already there \(e.g. `out/sub-12345`).
+`-o` `<OUTDIR>` - Path to output directory \(e.g. `out/sub-12345`).
 
 
-`<FREESURFER_LICENSE>` - Path to freesurfer lisence file (e.g. `./license.txt`).
+`-l` `<FREESURFER_LICENSE>` - Path to freesurfer lisence file (e.g. `./license.txt`).
 
 
-`<IMG_PATH>` [OPTIONAL ARGUMENT]: Input scan
- (e.g. `input/sub-12345/sub-12345.nii.gz`). If left blank, defaults to `recon-all-output/sub-12345/mri/nu.mgz`. \
+`-i` `<IMG>` [OPTIONAL ARGUMENT]: Path to input T1 scan
+ (e.g. `input/sub-12345/T1_sub-12345.nii.gz`). If left blank, defaults to `recon-all-output/sub-12345/mri/nu.mgz`. \
 Note: Input image must be in the same space as the one used to run freesurfer (not necessarily same resolution and spacing).
 
+`-j` `<IMG2>` [OPTIONAL ARGUMENT]: Secondary image.Apply the registration output used to calculate statistics for `<$IMG>` to `<$IMG2>`. Must be in the same space as `<$IMG>` (e.g. `input/sub-12345/T2_sub-12345.nii.gz`).
+
+`-k` `<IMG3>` [OPTIONAL ARGUMENT]: Secondary image.Apply the registration output used to calculate statistics for `<$IMG>` to `<$IMG3>`. Must be in the same space as `<$IMG>` (e.g. `input/sub-12345/DWI-FA_sub-12345.nii.gz`).
+
+`-c` - Cleanup Flag [OPTIONAL ARGUMENT]: Deletes all generated output except the statistics directory/directories (`stats*`).
+
 ## Pipeline Summary
-1) Run BET (if <IMG_PATH> is not default)
-2) Linear registration: input image <> mni152 (FLIRT)
-3) Non-linear registration: input image <> mni152 (FNIRT)
-4) Transform lobe mask, mni brain mask to native space (input image space)
-5) Calculate intensity statistics of input image masked by lobe mask and brain mask (`out/sub-1234/stats/WM_stats.csv`)
-6) Rescale input image intensity ([0, 1]) and calculate (`out/sub-1234/stats/WM_stats_norm.csv`)
+1) Run BET (if `-i <IMG>` is defined)
+2) Linear registration: input image <> MNI152 (FLIRT)
+3) Non-linear registration: input image <> MNI152 (FNIRT)
+4) Transform MNI152 lobe mask, brain mask, cerebrum mask to native space (input image space)
+5) Calculate intensity statistics of input image(s) masked by lobe mask and Desikan Killiany (DK) atlas (`out/sub-1234/stats`)
+
 
  ## Output
 
 Sample output for a single subject: `out/sub-1234` \
 Note: Check to make sure mask files in the `stats` directory overlay correctly onto the input image.
-``` bash
+```bash
+├── errorflag # Global Error log file (0 if ok)
+├── logs # Log Files
+│   ├── atlas_2_native_log_stderr.txt
+│   ├── atlas_2_native_log_stdout.txt
+│   ├── brainmask_2_native_log_stderr.txt
+│   ├── brainmask_2_native_log_stdout.txt
+│   ├── cerebrum_mask_2_native_log_stderr.txt
+│   ├── cerebrum_mask_2_native_log_stdout.txt
+│   ├── flirt_log_stderr.txt
+│   ├── flirt_log_stdout.txt
+│   ├── fnirt_log_stderr.txt
+│   ├── fnirt_log_stdout.txt
+│   ├── inv_warp_log_stderr.txt
+│   ├── inv_warp_log_stdout.txt
+│   ├── t1_2_ref_log_stderr.txt
+│   └── t1_2_ref_log_stdout.txt
 ├── mri # Freesurfer input files
-│   ├── brain_mask.nii.gz
-│   ├── brain.nii.gz
-│   ├── brain_skull.nii.gz
-│   └── WM_mask_all.nii.gz
+│   ├── brain.nii.gz
+│   ├── DK_atlas.nii.gz
+│   ├── GM_mask_ctx.nii.gz
+│   ├── nu.nii.gz
+│   ├── nu_to_MNI152_T1_2mm.log
+│   └── WM_mask_all.nii.gz
+├── pipeline.info # Pipeline version info
 ├── registration # FLIRT / FNIRT Registration files
-│   ├── atlas_native.nii.gz
-│   ├── brain_mask_native.nii.gz
-│   ├── mni2struct_warp.nii.gz
-│   ├── struct2mni_affine.mat
-│   ├── struct2mni_warp.nii.gz
-│   ├── T1_atlas_flirt.nii.gz
-│   └── T1_atlas_fnirt.nii.gz
-└── stats # Masks used for calculating stats
-    ├── Brain_mask.nii.gz
-    ├── cortex_mask.nii.gz
-    ├── Lobe_mask.nii.gz
-    ├── WhiteMatter_mask.nii.gz
-    ├── WM_stats.csv # <-- Raw Image Statistics
-    └── WM_stats_norm.csv # <-- Normalized ([0,1]) Image Statistics
+│   ├── atlas_native.nii.gz
+│   ├── brain_mask_native.nii.gz
+│   ├── cerebrum_mask_native.nii.gz
+│   ├── mni2struct_warp.nii.gz
+│   ├── struct2mni_affine.mat
+│   ├── struct2mni_warp.nii.gz
+│   ├── T1_atlas_flirt.nii.gz
+│   └── T1_atlas_fnirt.nii.gz
+├── stats # Output stats for -i $IMG 
+│   ├── ALL_stats_DK.csv
+│   ├── ALL_stats_lobes.csv
+│   ├── BrainMask.nii.gz
+│   ├── CerebrumMask.nii.gz
+│   ├── GM_stats_lobes.csv
+│   ├── GrayMatterMask.nii.gz
+│   ├── LabelMask_DK.nii.gz
+│   ├── LabelMask_lobes.nii.gz
+│   ├── WhiteMatterMask.nii.gz
+│   └── WM_stats_lobes.csv
+├── stats2 # Output stats for -j $IMG2 
+│   ├── ALL_stats_DK.csv
+│   ├── ALL_stats_lobes.csv
+│   ├── BrainMask.nii.gz
+│   ├── CerebrumMask.nii.gz
+│   ├── GM_stats_lobes.csv
+│   ├── GrayMatterMask.nii.gz
+│   ├── LabelMask_DK.nii.gz
+│   ├── LabelMask_lobes.nii.gz
+│   ├── WhiteMatterMask.nii.gz
+│   └── WM_stats_lobes.csv
+└── stats3 # Output stats for -k $IMG3 
+    ├── ALL_stats_DK.csv
+    ├── ALL_stats_lobes.csv
+    ├── BrainMask.nii.gz
+    ├── CerebrumMask.nii.gz
+    ├── GM_stats_lobes.csv
+    ├── GrayMatterMask.nii.gz
+    ├── LabelMask_DK.nii.gz
+    ├── LabelMask_lobes.nii.gz
+    ├── WhiteMatterMask.nii.gz
+    └── WM_stats_lobes.csv
 ```
-### WM_stats
+
+### Stats Files
 - Columns repersent different statistical measures
-- Rows represent different regions / lobes
-- Last row represents the entire brain / cortical region (labels 1-8 of lobe mask)
+- Rows represent different regions
+- Last two rows represents the cerebrum and whole brain respectivelly. Suggested Normalization: Divide intensity statistics by the global whole-brain mean intensity (Last row in `../stats/ALL_stats_lobes.csv`)
+---
+- `ALL_stats_DK.csv` - Intensity statistics from regions defined in `LabelMask_DK.nii.gz`
+- `ALL_stats_lobes.csv` - Intensity statistics from regions defined in `LabelMask_lobes.nii.gz`
+- `BrainMask.nii.gz` - MNI152 brain mask in native space
+- `CerebrumMask.nii.gz` - MNI152 cerebrum mask in native space (defined by labels 1-8 in ``LabelMask_lobes.nii.gz``)
+- `GM_stats_lobes.csv` - Intensity statistics of GM regions defined by `LabelMask_lobes.nii.gz` and `GrayMatterMask.nii.gz`
+- `GrayMatterMask.nii.gz` - GM tissue mask defined from `recon-dir/mri/ribbon.mgz`
+- `LabelMask_DK.nii.gz` - Desikan Killany segmentation mask defined from `recon-dir/mri/aparc+aseg.mgz`
+- `LabelMask_lobes.nii.gz` - MNI152 lobe masks transformed to native space
+- `WhiteMatterMask.nii.gz` - WM tissue mask defined from `recon-dir/mri/aparc+aseg.mgz`
+- `WM_stats_lobes.csv` - Intensity statistics of WM regions defined by `LabelMask_lobes.nii.gz` and `WhiteMatterMask.nii.gz`
+
+
+### See `docs/FS_T1_PIPELINE.pdf` for more details.
+
 
 
 ### Lobe Mask
