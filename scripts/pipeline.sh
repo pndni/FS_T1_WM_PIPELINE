@@ -39,7 +39,6 @@ logcmd(){
 }
 
 version=1.0.4
-echo "HELLO WORLD"
 
 # Calculate and store hash of this file for logging and reproducibility
 selfhash=$(sha256sum $0)
