@@ -39,6 +39,7 @@ logcmd(){
 }
 
 version=1.0.4
+echo "HELLO WORLD"
 
 # Calculate and store hash of this file for logging and reproducibility
 selfhash=$(sha256sum $0)
@@ -187,10 +188,12 @@ mkdir -p $reg_dir
 echo "FLIRT LINEAR REGISTRATION"
 s2raff="${reg_dir}"/"struct2mni_affine.mat"
 T1_atlas="${reg_dir}"/"T1_atlas_flirt${out_ext}"
+rough_affine="${reg_dir}"/"rough_affine.mat"
 if [ "${CONTINUE_FLAG}" = "0" ]; then
-    echo flirt -ref "${mni_ref_brain}" -in "${IMG_brain}" -out "${T1_atlas}" -omat "${s2raff}"
-    logcmd flirt_log flirt -ref "${mni_ref_brain}" -in "${IMG_brain}" -out "${T1_atlas}" -omat "${s2raff}"
-else
+    echo flirt -ref "${mni_ref_brain}" -in "${IMG_brain}" -omat "${rough_affine}" -dof 3 -cost normcorr
+    logcmd flirt_log flirt -ref "${mni_ref_brain}" -in "${IMG_brain}" -omat "${rough_affine}" -dof 3 -cost normcorr
+    echo flirt -ref "${mni_ref_brain}" -in "${IMG_brain}" -out "${T1_atlas}" -omat "${s2raff}" -init "${rough_affine}" -cost normcorr
+    logcmd flirt_log flirt -ref "${mni_ref_brain}" -in "${IMG_brain}" -out "${T1_atlas}" -omat "${s2raff}" -init "${rough_affine}" -cost normcorr
     echo "CONTINUE_FLAG: ${CONTINUE_FLAG} .. skipping flirt registration steps"
 fi
 check_file $T1_atlas
